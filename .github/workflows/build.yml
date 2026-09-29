@@ -1,0 +1,62 @@
+name: Build Echoes of Core
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generar proyecto Echoes of Core
+        run: |
+          python generator/generate_game.py
+
+      - name: Descargar Godot
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
+          unzip -q Godot_v4.5.1-stable_linux.x86_64.zip
+          chmod +x Godot_v4.5.1-stable_linux.x86_64
+
+      - name: Importar proyecto
+        run: |
+          ./Godot_v4.5.1-stable_linux.x86_64 \
+            --headless \
+            --editor \
+            --path game \
+            --quit
+
+      - name: Compilar Windows
+        run: |
+          mkdir -p build/windows
+          ./Godot_v4.5.1-stable_linux.x86_64 \
+            --headless \
+            --path game \
+            --export-release "Windows Desktop" \
+            build/windows/EchoesOfCore.exe
+
+      - name: Empaquetar Windows
+        run: |
+          cd build/windows
+          zip -r ../../EchoesOfCore-Windows.zip .
+
+      - name: Publicar juego
+        uses: actions/upload-artifact@v4
+        with:
+          name: EchoesOfCore-Windows
+          path: EchoesOfCore-Windows.zip
